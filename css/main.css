@@ -1,0 +1,21 @@
+body {
+        font-family: 'Cairo', sans-serif;
+        background-color: #f8fafc;
+}
+
+.prayer-card {
+        transition: all 0.25s ease-in-out;
+}
+
+::-webkit-scrollbar {
+        width: 8px;
+}
+
+::-webkit-scrollbar-track {
+        background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+        background: #10b981;
+        border-radius: 4px;
+}

@@ -1,497 +1,126 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متابع الصلوات - متصل سحابياً (Firebase)</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Cairo -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Prayers Tracker - Cloud connected</title>
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- FontAwesome Icons CDN -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <!-- Google Fonts: Cairo -->
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+        <!-- ICON -->
+        <link href="./attachments/logo.png" rel="icon">
 
-    <!-- Firebase SDKs (Compat v10) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+        <!-- Firebase SDKs (Compat v10) -->
+        <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        emerald: {
-                            850: '#064e3b',
-                            900: '#022c22',
-                        },
-                        gold: {
-                            400: '#fbbf24',
-                            500: '#f59e0b',
-                            600: '#d97706',
-                        }
-                    },
-                    fontFamily: {
-                        cairo: ['Cairo', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background-color: #f8fafc;
-        }
-
-        .prayer-card {
-            transition: all 0.25s ease-in-out;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #10b981;
-            border-radius: 4px;
-        }
-    </style>
+        <script src="./js/tailwind.js"></script>
 </head>
 
 <body class="text-gray-800 bg-slate-50 min-h-screen pb-24">
 
-    <!-- Header Section -->
-    <header
-        class="bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-950 text-white shadow-xl border-b-4 border-gold-500 sticky top-0 z-30">
-        <div class="max-w-6xl mx-auto px-4 py-4 sm:px-6">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- Header Section -->
+        <header
+                class="bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-950 text-white shadow-xl border-b-4 border-gold-500 sticky top-0 z-30">
+                <div class="max-w-6xl mx-auto px-4 py-4 sm:px-6">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
 
-                <!-- Brand Title -->
-                <div class="flex items-center gap-3 text-center sm:text-right">
-                    <div
-                        class="w-12 h-12 rounded-2xl bg-gold-500/20 border border-gold-400/40 flex items-center justify-center text-gold-400 text-2xl shadow-inner">
-                        <i class="fa-solid fa-mosque"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl sm:text-2xl font-black text-amber-300">مُتابع الصلوات السحابي</h1>
-                        <p class="text-xs text-emerald-200">مزامنة فورية بين اللابتوب والموبايل عبر Firebase</p>
-                    </div>
-                </div>
-
-                <!-- Database Status Badge -->
-                <div
-                    class="flex items-center gap-3 bg-emerald-950/80 border border-emerald-700/60 rounded-2xl p-2.5 px-4 shadow-inner">
-                    <div id="syncStatusDot" class="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                    <div class="text-xs">
-                        <span id="syncStatusText" class="font-bold text-emerald-300 block">متصل سحابياً</span>
-                        <span class="text-[10px] text-emerald-200">التحديث لحظي بين الأجهزة</span>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
-
-        <!-- Controls & Operations Bar -->
-        <div
-            class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3 text-sm text-slate-700">
-                <span
-                    class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
-                    <i class="fa-solid fa-cloud text-emerald-700"></i>
-                </span>
-                <div>
-                    <strong class="text-slate-900 block text-xs sm:text-sm">النظام السحابي النشط:</strong>
-                    <span class="text-xs text-slate-500">أي ضغطة (صح / غلط) أو إضافة أيام يتم تحديثها فوراً في قاعدة
-                        البيانات السحابية وتظهر على الموبايل.</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 text-xs">
-                <button onclick="forceAddDays()"
-                    class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>إضافة 7 أيام جديدة</span>
-                </button>
-                <button onclick="resetAllData()"
-                    class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition flex items-center gap-1">
-                    <i class="fa-solid fa-trash-can"></i>
-                    <span>إعادة ضبط الكل</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Success Message -->
-        <div id="allSuccessCard"
-            class="hidden bg-gradient-to-br from-emerald-800 via-emerald-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 text-center shadow-2xl border-4 border-gold-400 my-8">
-            <div
-                class="w-24 h-24 bg-gold-500/20 border-2 border-gold-400 rounded-full flex items-center justify-center text-gold-400 text-5xl mx-auto mb-6 shadow-inner animate-bounce">
-                <i class="fa-solid fa-hands-praying"></i>
-            </div>
-            <h2 class="text-2xl sm:text-4xl font-black text-amber-300 mb-3">الحمد لله، تم أداء جميع الصلوات بنجاح! 🎉🤲
-            </h2>
-            <p class="text-emerald-100 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-                تم إكمال جميع الصلوات المتاحة وإخفاء الأيام المنتهية بنجاح. أضف أياماً جديدة لمتابعة الصلوات القادمة.
-            </p>
-            <button onclick="forceAddDays()"
-                class="mt-6 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-slate-900 font-extrabold rounded-xl text-sm transition shadow-lg">
-                إضافة 7 أيام جديدة
-            </button>
-        </div>
-
-        <!-- Days Cards Grid -->
-        <div id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <!-- Dynamic Cards generated via JS -->
-        </div>
-
-    </main>
-
-    <!-- Toast Notification -->
-    <div id="toast"
-        class="fixed top-5 left-5 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 text-sm">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-        <span id="toastMessage">تم التحديث بنجاح</span>
-    </div>
-
-    <!-- Application Script with Firebase Realtime Sync -->
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkwQd8a1Vlaxk_otIR4L63KwJBkmphhRc",
-            authDomain: "prayer-tracker-e0903.firebaseapp.com",
-            databaseURL: "https://prayer-tracker-e0903-default-rtdb.firebaseio.com",
-            projectId: "prayer-tracker-e0903",
-            storageBucket: "prayer-tracker-e0903.firebasestorage.app",
-            messagingSenderId: "458331425673",
-            appId: "1:458331425673:web:4bdeeee8557c5c41ce6f58",
-            measurementId: "G-SN2WL21CCZ"
-        };
-
-        // Initialize Firebase safely using compat libraries
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const dbRef = db.ref('prayerTrackerData');
-
-        const PRAYERS = [
-            { key: 'fajr', name: 'الفجر' },
-            { key: 'dhuhr', name: 'الظهر' },
-            { key: 'asr', name: 'العصر' },
-            { key: 'maghrib', name: 'المغرب' },
-            { key: 'isha', name: 'العشاء' }
-        ];
-
-        const DAY_NAMES = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-
-        let trackerData = {
-            lastUpdated: getTodayISO(),
-            days: {}
-        };
-
-        let isInitialLoad = true;
-
-        // Real-time listener from Firebase
-        dbRef.on('value', (snapshot) => {
-            const serverData = snapshot.val();
-            if (serverData && serverData.days) {
-                trackerData = serverData;
-                normalizeTrackerData();
-                ensureRollingWindow();
-                renderGrid();
-                if (!isInitialLoad) {
-                    showToast("تم تحديث البيانات من السحابة تلقائياً");
-                }
-            } else {
-                // If DB is empty, initialize rolling window and push to Firebase
-                ensureRollingWindow();
-                syncToFirebase();
-            }
-            isInitialLoad = false;
-        }, (error) => {
-            console.error("Firebase read error:", error);
-            setConnectionErrorStatus();
-        });
-
-        function setConnectionErrorStatus() {
-            const dot = document.getElementById('syncStatusDot');
-            const text = document.getElementById('syncStatusText');
-            if (dot && text) {
-                dot.className = "w-3.5 h-3.5 rounded-full bg-rose-500";
-                text.innerText = "خطأ في الاتصال السحابي";
-            }
-        }
-
-        function getTodayISO() {
-            const today = new Date();
-            return formatDateISO(today);
-        }
-
-        function formatDateISO(dateObj) {
-            const year = dateObj.getFullYear();
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dateObj.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        function parseISODate(isoStr) {
-            const parts = isoStr.split('-');
-            return new Date(parts[0], parts[1] - 1, parts[2]);
-        }
-
-        function ensureRollingWindow() {
-            const todayStr = getTodayISO();
-            const todayDate = parseISODate(todayStr);
-
-            let keys = Object.keys(trackerData.days).sort();
-            if (keys.length === 0) {
-                for (let i = 0; i < 7; i++) {
-                    const d = new Date(todayDate);
-                    d.setDate(todayDate.getDate() + i);
-                    const dStr = formatDateISO(d);
-                    trackerData.days[dStr] = { fajr: 'none', dhuhr: 'none', asr: 'none', maghrib: 'none', isha: 'none' };
-                }
-            }
-        }
-
-        function normalizeTrackerData() {
-            if (!trackerData.days) trackerData.days = {};
-            Object.keys(trackerData.days).forEach(dateKey => {
-                const day = trackerData.days[dateKey];
-                PRAYERS.forEach(p => {
-                    const val = day[p.key];
-                    if (val === true || val === 'done' || val === 'true') {
-                        day[p.key] = 'done';
-                    } else if (val === false || val === 'missed' || val === 'false') {
-                        day[p.key] = 'missed';
-                    } else {
-                        day[p.key] = 'none';
-                    }
-                });
-            });
-        }
-
-        // Sync data to Firebase Database
-        async function syncToFirebase() {
-            try {
-                trackerData.lastUpdated = getTodayISO();
-                await dbRef.set(trackerData);
-            } catch (err) {
-                console.error("Firebase write error:", err);
-                showToast("فشل الحفظ في السحابة", "error");
-            }
-        }
-
-        function isDayFullyCompleted(dayObj) {
-            if (!dayObj) return false;
-            return PRAYERS.every(p => dayObj[p.key] === 'done');
-        }
-
-        async function forceAddDays() {
-            const keys = Object.keys(trackerData.days).sort();
-            let baseDate = new Date();
-            if (keys.length > 0) {
-                const lastKey = keys[keys.length - 1];
-                baseDate = parseISODate(lastKey);
-                baseDate.setDate(baseDate.getDate() + 1);
-            }
-
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(baseDate);
-                d.setDate(baseDate.getDate() + i);
-                const dStr = formatDateISO(d);
-                if (!trackerData.days[dStr]) {
-                    trackerData.days[dStr] = { fajr: 'none', dhuhr: 'none', asr: 'none', maghrib: 'none', isha: 'none' };
-                }
-            }
-
-            await syncToFirebase();
-            showToast("تمت إضافة 7 أيام جديدة للسحابة");
-        }
-
-        // Render UI Cards
-        function renderGrid() {
-            const container = document.getElementById('daysGrid');
-            const successCard = document.getElementById('allSuccessCard');
-            if (!container || !successCard) return;
-
-            container.innerHTML = '';
-
-            const todayStr = getTodayISO();
-            const todayDate = parseISODate(todayStr);
-
-            const allDayKeys = Object.keys(trackerData.days).sort();
-            let visibleDaysCount = 0;
-
-            allDayKeys.forEach(dateKey => {
-                const dayData = trackerData.days[dateKey];
-                const dayDate = parseISODate(dateKey);
-
-                const isPast = dayDate < todayDate;
-                const isToday = dateKey === todayStr;
-                const isComplete = isDayFullyCompleted(dayData);
-
-                // Hide completed days automatically
-                if ((isPast && isComplete) || (isToday && isComplete)) {
-                    return;
-                }
-
-                visibleDaysCount++;
-                const isOverdueIncomplete = isPast && !isComplete;
-
-                const dayName = DAY_NAMES[dayDate.getDay()];
-                const dateFormatted = dayDate.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
-
-                let completedPrayersCount = 0;
-                PRAYERS.forEach(p => {
-                    if (dayData[p.key] === 'done') completedPrayersCount++;
-                });
-
-                let cardBgClass = "bg-white border-slate-200 shadow-sm";
-                let badgeBgClass = "bg-emerald-50 text-emerald-800";
-                let headerTextClass = "text-slate-800";
-                let warningBanner = "";
-
-                if (isOverdueIncomplete) {
-                    cardBgClass = "bg-rose-50/90 border-rose-300 ring-2 ring-rose-400/40 shadow-md";
-                    badgeBgClass = "bg-rose-200 text-rose-900";
-                    headerTextClass = "text-rose-950";
-                    warningBanner = `
-                        <div class="mb-3 px-3 py-1.5 bg-rose-500/10 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-700 text-[11px] font-bold">
-                            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-xs"></i>
-                            <span>تحذير: يوم سابق به صلوات فائتة لم تكتمل بعد!</span>
-                        </div>
-                    `;
-                } else if (isToday) {
-                    cardBgClass = "bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-md";
-                    badgeBgClass = "bg-emerald-600 text-white";
-                }
-
-                const cardHtml = `
-                    <div class="prayer-card rounded-2xl p-5 border ${cardBgClass} relative overflow-hidden">
-                        ${warningBanner}
-
-                        <!-- Card Header -->
-                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200/60">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h3 class="font-extrabold ${headerTextClass} text-base">${dayName}</h3>
-                                    ${isToday ? '<span class="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-bold rounded-md">اليوم</span>' : ''}
-                                </div>
-                                <span class="text-xs text-slate-500 block font-semibold mt-0.5">${dateFormatted} (${dateKey})</span>
-                            </div>
-
-                            <span class="text-xs px-2.5 py-1 rounded-full font-bold ${badgeBgClass}">
-                                ${completedPrayersCount} / 5
-                            </span>
-                        </div>
-
-                        <!-- Prayers Buttons -->
-                        <div class="space-y-2">
-                            ${PRAYERS.map(p => {
-                    const val = dayData[p.key];
-                    const isDone = val === 'done';
-                    const isMissed = val === 'missed';
-
-                    return `
-                                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/80 border border-slate-200/70 hover:bg-white transition">
-                                        <span class="text-xs font-bold text-slate-700 flex items-center gap-2">
-                                            ${p.name}
-                                            ${isDone ? '<span class="text-[10px] text-emerald-600 font-bold">(تمت)</span>' : ''}
-                                            ${isMissed ? '<span class="text-[10px] text-rose-600 font-bold">(فُوّتت)</span>' : ''}
-                                        </span>
-                                        
-                                        <div class="flex items-center gap-2">
-                                            <!-- Done Checkmark Button (✓) -->
-                                            <button onclick="togglePrayer('${dateKey}', '${p.key}', 'done')" 
-                                                    title="تمت الصلاة (✓)"
-                                                    class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition ${isDone ? 'bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-400 scale-105' : 'bg-slate-100 border border-slate-300 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}">
-                                                <i class="fa-solid fa-check"></i>
-                                            </button>
-
-                                            <!-- Missed Cross Button (✗) -->
-                                            <button onclick="togglePrayer('${dateKey}', '${p.key}', 'missed')" 
-                                                    title="لم تصلَّ / قضاء (✗)"
-                                                    class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition ${isMissed ? 'bg-rose-600 text-white shadow-lg ring-2 ring-rose-400 scale-105' : 'bg-slate-100 border border-slate-300 text-slate-400 hover:border-rose-500 hover:text-rose-600 hover:bg-rose-50'}">
-                                                <i class="fa-solid fa-xmark"></i>
-                                            </button>
+                                <!-- Brand Title -->
+                                <div class="flex items-center gap-3 text-center sm:text-right">
+                                        <div
+                                                class="w-12 h-12 rounded-2xl bg-gold-500/20 border border-gold-400/40 flex items-center justify-center text-gold-400 text-2xl shadow-inner">
+                                                <i class="fa-solid fa-mosque"></i>
                                         </div>
-                                    </div>
-                                `;
-                }).join('')}
+                                        <div>
+                                                <h1 class="text-xl sm:text-2xl font-black text-amber-300">Prayers Tracker</h1>
+                                                <p class="text-xs text-emerald-200">Instant sync between laptop and mobile via Firebase</p>
+                                        </div>
+                                </div>
+
+                                <!-- Database Status Badge -->
+                                <div
+                                        class="flex items-center gap-3 bg-emerald-950/80 border border-emerald-700/60 rounded-2xl p-2.5 px-4 shadow-inner">
+                                        <div id="syncStatusDot" class="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                        <div class="text-xs">
+                                                <span id="syncStatusText" class="font-bold text-emerald-300 block">Cloud connected</span>
+                                                <span class="text-[10px] text-emerald-200">Update is instantaneous between devices</span>
+                                        </div>
+                                </div>
+
+                        </div>
+                </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+
+                <!-- Controls & Operations Bar -->
+                <div
+                        class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 text-sm text-slate-700">
+                                <span
+                                        class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                                        <i class="fa-solid fa-cloud text-emerald-700"></i>
+                                </span>
+                                <div>
+                                        <strong class="text-slate-900 block text-xs sm:text-sm">Active cloud system:</strong>
+                                        <span class="text-xs text-slate-500">Any click (true / false) or addition of days will be updated immediately in the cloud database and appear on the mobile.</span>
+                                </div>
                         </div>
 
-                    </div>
-                `;
+                        <div class="flex items-center gap-2 text-xs">
+                                <button onclick="forceAddDays()"
+                                        class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>Add 7 new days</span>
+                                </button>
+                                <button onclick="resetAllData()"
+                                        class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition flex items-center gap-1">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                        <span>Reset all</span>
+                                </button>
+                        </div>
+                </div>
 
-                container.insertAdjacentHTML('beforeend', cardHtml);
-            });
+                <!-- Success Message -->
+                <div id="allSuccessCard"
+                        class="hidden bg-gradient-to-br from-emerald-800 via-emerald-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 text-center shadow-2xl border-4 border-gold-400 my-8">
+                        <div
+                                class="w-24 h-24 bg-gold-500/20 border-2 border-gold-400 rounded-full flex items-center justify-center text-gold-400 text-5xl mx-auto mb-6 shadow-inner animate-bounce">
+                                <i class="fa-solid fa-hands-praying"></i>
+                        </div>
+                        <h2 class="text-2xl sm:text-4xl font-black text-amber-300 mb-3">Thank God, all prayers were performed successfully! 🎉🤲
+                        </h2>
+                        <p class="text-emerald-100 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+                                All available prayers have been completed and the days ending have been successfully hidden. Add new days to follow up
+                                on upcoming prayers.
+                        </p>
+                        <button onclick="forceAddDays()"
+                                class="mt-6 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-slate-900 font-extrabold rounded-xl text-sm transition shadow-lg">
+                                Add 7 new days
+                        </button>
+                </div>
 
-            if (visibleDaysCount === 0) {
-                successCard.classList.remove('hidden');
-            } else {
-                successCard.classList.add('hidden');
-            }
-        }
+                <!-- Days Cards Grid -->
+                <div id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- Dynamic Cards generated via JS -->
+                </div>
 
-        // Toggle Prayer Status & Save instantly to Firebase
-        async function togglePrayer(dateKey, prayerKey, targetStatus) {
-            if (!trackerData.days[dateKey]) return;
+        </main>
 
-            const currentVal = trackerData.days[dateKey][prayerKey];
-            if (currentVal === targetStatus) {
-                trackerData.days[dateKey][prayerKey] = 'none';
-            } else {
-                trackerData.days[dateKey][prayerKey] = targetStatus;
-            }
+        <!-- Toast Notification -->
+        <div id="toast"
+                class="fixed top-5 left-5 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 text-sm">
+                <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+                <span id="toastMessage">Updated successfully</span>
+        </div>
 
-            await syncToFirebase();
-            showToast("تم التحديث وحفظ البيانات سحابياً");
-        }
-
-        async function resetAllData() {
-            if (confirm("هل أنت متأكد من إعادة ضبط وتفريغ كافة البيانات السحابية؟")) {
-                trackerData = {
-                    lastUpdated: getTodayISO(),
-                    days: {}
-                };
-                ensureRollingWindow();
-                await syncToFirebase();
-                showToast("تم إعادة ضبط البيانات السحابية بنجاح");
-            }
-        }
-
-        function showToast(message, type = "success") {
-            const toast = document.getElementById('toast');
-            if (!toast) return;
-            const toastMsg = document.getElementById('toastMessage');
-            const toastIcon = document.getElementById('toastIcon');
-
-            if (toastMsg) toastMsg.innerText = message;
-
-            if (toastIcon) {
-                if (type === "error") {
-                    toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400 text-lg";
-                } else {
-                    toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
-                }
-            }
-
-            toast.classList.remove('-translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('-translate-y-20', 'opacity-0');
-            }, 2500);
-        }
-    </script>
+        <script src="./js/firebase.js"></script>
+        <script src="./js/main.js"></script>
 </body>
 
 </html>
