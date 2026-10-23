@@ -2,6 +2,46 @@ body {
         font-family: 'Cairo', sans-serif;
         background-color: #f8fafc;
 }
+body.no-scroll {
+        overflow: hidden;
+}
+
+.loadingPage {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        z-index: 9999;
+        transition-duration: 1000ms;
+}
+.loadingPage.hide {
+        opacity: 0;
+        transform: scale(5);
+}
+.loadingPage.inactive {
+        display: none;
+}
+.loadingPage img {
+        animation: pulse .5s linear 0s infinite alternate backwards;
+        width: 35%;
+        max-width: 200px;
+}
+@keyframes pulse {
+        from {
+                opacity: .5;
+                transform: scale(1);
+        } to {
+                opacity: 1;
+                transform: scale(1.1);
+        }
+}
+.loadingPage span {
+        font-size: xx-large;
+        letter-spacing: 5px;
+        filter: drop-shadow(0 0 3px white);
+}
 
 .prayer-card {
         transition: all 0.25s ease-in-out;
@@ -18,4 +58,11 @@ body {
 ::-webkit-scrollbar-thumb {
         background: #10b981;
         border-radius: 4px;
+}
+
+@media screen and (max-width: 575.98px) {
+        .loadingPage span {
+                font-size: large;
+                letter-spacing: 2px;
+        }
 }

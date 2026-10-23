@@ -23,7 +23,15 @@
         <script src="./js/tailwind.js"></script>
 </head>
 
-<body class="text-gray-800 bg-slate-50 min-h-screen pb-24">
+<body class="text-gray-800 bg-slate-50 min-h-screen pb-24 no-scroll">
+
+        <!-- Loading Page -->
+        <div class="loadingPage bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-950 text-white shadow-xl border-b-4 border-gold-500 top-0">
+                <div class="container mx-auto h-full flex flex-col justify-center align-middle text-center">
+                        <img class="block mx-auto mb-10" src="./attachments/logo.png" alt="">
+                        <span class="font-extrabold">Prayers Tracker</span>
+                </div>
+        </div>
 
         <!-- Header Section -->
         <header
@@ -122,6 +130,7 @@
         </div>
 
         <script src="./js/firebase.js"></script>
+        <script src="./js/functions.js"></script>
         <script src="./js/main.js"></script>
 </body>
 
