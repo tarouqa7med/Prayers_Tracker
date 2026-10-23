@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متابع الصلوات - قاعدة بيانات JSON المباشرة</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            850: '#064e3b',
+                            900: '#022c22',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .prayer-card {
+            transition: all 0.25s ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 bg-slate-50 min-h-screen pb-24">
+
+    <!-- Top Connection Banner when opening browser fresh -->
+    <div id="reconnectBanner"
+        class="hidden bg-amber-500 text-slate-900 px-4 py-3 shadow-md border-b border-amber-600 sticky top-0 z-40">
+        <div
+            class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-database text-xl text-slate-950 animate-bounce"></i>
+                <div>
+                    <strong class="font-extrabold text-sm block">المتصفح يتطلب تأكيد الاتصال بقاعدة بيانات JSON</strong>
+                    <span class="text-xs font-semibold text-slate-800">اضغط لتفعيل القراءة والكتابة المباشرة مع الملف
+                        المحفوظ</span>
+                </div>
+            </div>
+            <button onclick="verifyPermissionAndInit(true)"
+                class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-300 font-extrabold text-xs rounded-xl transition shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-plug"></i>
+                <span>تأكيد الربط التلقائي الآن</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <header
+        class="bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-950 text-white shadow-xl border-b-4 border-gold-500 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-4 sm:px-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+
+                <!-- Brand Title -->
+                <div class="flex items-center gap-3 text-center sm:text-right">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gold-500/20 border border-gold-400/40 flex items-center justify-center text-gold-400 text-2xl shadow-inner">
+                        <i class="fa-solid fa-mosque"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black text-amber-300">مُتابع الصلوات (JSON Database)</h1>
+                        <p class="text-xs text-emerald-200">الملف محلياً هو قاعدة البيانات الحقيقية المستهدفة</p>
+                    </div>
+                </div>
+
+                <!-- Database File Status -->
+                <div
+                    class="flex items-center gap-3 bg-emerald-950/80 border border-emerald-700/60 rounded-2xl p-2.5 px-4 shadow-inner">
+                    <div id="syncStatusDot" class="w-3.5 h-3.5 rounded-full bg-rose-500"></div>
+                    <div class="text-xs">
+                        <span id="syncStatusText" class="font-bold text-rose-300 block">غير متصل بـ JSON</span>
+                        <span id="syncStatusSub" class="text-[10px] text-emerald-300">اختر ملف prayers_data.json
+                            لقراءة/كتابة البيانات</span>
+                    </div>
+                    <button onclick="connectJsonFile()"
+                        class="mr-2 px-3 py-2 bg-gold-500 hover:bg-gold-600 text-slate-900 font-extrabold rounded-xl text-xs shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span>ربط / اختيار ملف JSON</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+
+        <!-- Controls & Operations Bar -->
+        <div
+            class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-sm text-slate-700">
+                <span
+                    class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-hard-drive text-emerald-700"></i>
+                </span>
+                <div>
+                    <strong class="text-slate-900 block text-xs sm:text-sm">حفظ كامل ومباشر في ملف الـ JSON:</strong>
+                    <span class="text-xs text-slate-500">أي ضغطة (صح / غلط) أو تغيير تواريخ يُمحى ويُكتب فوراً في قاعدة
+                        البيانات `prayers_data.json`.</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs">
+                <button onclick="forceAddDays()"
+                    class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>إضافة 7 أيام لملف JSON</span>
+                </button>
+                <button onclick="resetAllData()"
+                    class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>تفريغ ملف JSON</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div id="allSuccessCard"
+            class="hidden bg-gradient-to-br from-emerald-800 via-emerald-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 text-center shadow-2xl border-4 border-gold-400 my-8">
+            <div
+                class="w-24 h-24 bg-gold-500/20 border-2 border-gold-400 rounded-full flex items-center justify-center text-gold-400 text-5xl mx-auto mb-6 shadow-inner animate-bounce">
+                <i class="fa-solid fa-hands-praying"></i>
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-black text-amber-300 mb-3">الحمد لله، تم أداء جميع الصلوات بنجاح! 🎉🤲
+            </h2>
+            <p class="text-emerald-100 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+                تم حفظ وتحديث جميع السجلات في ملف الـ JSON بنجاح. أضف أياماً جديدة لمتابعة الأسبوع القادم.
+            </p>
+            <button onclick="forceAddDays()"
+                class="mt-6 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-slate-900 font-extrabold rounded-xl text-sm transition shadow-lg">
+                إضافة 7 أيام جديدة وقراءتها من JSON
+            </button>
+        </div>
+
+        <!-- Days Cards Grid -->
+        <div id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- Dynamic Cards generated via JS -->
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast"
+        class="fixed top-5 left-5 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 text-sm">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage">تم التحديث في ملف الـ JSON بنجاح</span>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script>
+        // Import the functions you need from the SDKs you need
+            import { initializeApp } from "firebase/app";
+            import { getAnalytics } from "firebase/analytics";
+            // TODO: Add SDKs for Firebase products that you want to use
+            // https://firebase.google.com/docs/web/setup#available-libraries
+
+            // Your web app's Firebase configuration
+            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+            const firebaseConfig = {
+                apiKey: "AIzaSyDkwQd8a1Vlaxk_otIR4L63KwJBkmphhRc",
+                authDomain: "prayer-tracker-e0903.firebaseapp.com",
+                databaseURL: "https://prayer-tracker-e0903-default-rtdb.firebaseio.com",
+                projectId: "prayer-tracker-e0903",
+                storageBucket: "prayer-tracker-e0903.firebasestorage.app",
+                messagingSenderId: "458331425673",
+                appId: "1:458331425673:web:4bdeeee8557c5c41ce6f58",
+                measurementId: "G-SN2WL21CCZ"
+            };
+
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+    </script>
+    <script>
+        const PRAYERS = [
+            { key: 'fajr', name: 'الفجر' },
+            { key: 'dhuhr', name: 'الظهر' },
+            { key: 'asr', name: 'العصر' },
+            { key: 'maghrib', name: 'المغرب' },
+            { key: 'isha', name: 'العشاء' }
+        ];
+
+        const DAY_NAMES = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+        let fileHandle = null;
+        let lastModifiedTime = 0;
+        let isWritingToFile = false;
+
+        // Base State Database
+        let trackerData = {
+            lastUpdated: getTodayISO(),
+            days: {}
+        };
+
+        // IndexedDB Configuration to persistent FileHandle across browser restarts
+        const DB_NAME = 'PrayerTrackerFileDB';
+        const STORE_NAME = 'handles';
+
+        function openIDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function storeFileHandleInIDB(handle) {
+            try {
+                const db = await openIDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(handle, 'prayers_json_handle');
+            } catch (e) {
+                console.error("Failed to save handle in IndexedDB", e);
+            }
+        }
+
+        async function getStoredFileHandleFromIDB() {
+            try {
+                const db = await openIDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                return new Promise((resolve) => {
+                    const req = tx.objectStore(STORE_NAME).get('prayers_json_handle');
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Initialize App on Window Load
+        window.onload = async function () {
+            const restoredHandle = await getStoredFileHandleFromIDB();
+            if (restoredHandle) {
+                fileHandle = restoredHandle;
+                await verifyPermissionAndInit(false);
+            } else {
+                ensureRollingWindow();
+                renderGrid();
+            }
+        };
+
+        async function verifyPermissionAndInit(userGesture = false) {
+            if (!fileHandle) return;
+
+            try {
+                // Check if browser allows access to handle
+                const options = { mode: 'readwrite' };
+                let perm = await fileHandle.queryPermission(options);
+
+                if (perm !== 'granted' && userGesture) {
+                    perm = await fileHandle.requestPermission(options);
+                }
+
+                if (perm === 'granted') {
+                    document.getElementById('reconnectBanner').classList.add('hidden');
+                    setConnectionStatus(true);
+                    await readFromJsonFile(true);
+                    startFileWatcher();
+                } else {
+                    // Show banner requiring click to reconnect permission
+                    document.getElementById('reconnectBanner').classList.remove('hidden');
+                    setConnectionStatus(false, "يحتاج موافقة للاتصال");
+                }
+            } catch (e) {
+                console.error("Permission check failed", e);
+                setConnectionStatus(false);
+            }
+        }
+
+        function setConnectionStatus(isConnected, customMsg) {
+            const dot = document.getElementById('syncStatusDot');
+            const text = document.getElementById('syncStatusText');
+            const sub = document.getElementById('syncStatusSub');
+
+            if (isConnected) {
+                dot.className = "w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse";
+                text.innerText = "متصل بقاعدة البيانات JSON";
+                text.className = "font-bold text-emerald-300 block";
+                sub.innerText = "القراءة والكتابة تعمل بشكل ثنائي ومباشر";
+            } else {
+                dot.className = "w-3.5 h-3.5 rounded-full bg-rose-500";
+                text.innerText = customMsg || "غير متصل بملف JSON";
+                text.className = "font-bold text-rose-300 block";
+                sub.innerText = "انقر فوق 'ربط ملف JSON' للتفعيل";
+            }
+        }
+
+        function getTodayISO() {
+            const today = new Date();
+            return formatDateISO(today);
+        }
+
+        function formatDateISO(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseISODate(isoStr) {
+            const parts = isoStr.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        function ensureRollingWindow() {
+            const todayStr = getTodayISO();
+            const todayDate = parseISODate(todayStr);
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(todayDate);
+                d.setDate(todayDate.getDate() + i);
+                const dStr = formatDateISO(d);
+
+                if (!trackerData.days[dStr]) {
+                    trackerData.days[dStr] = {
+                        fajr: 'none',
+                        dhuhr: 'none',
+                        asr: 'none',
+                        maghrib: 'none',
+                        isha: 'none'
+                    };
+                }
+            }
+        }
+
+        // CONNECT / PICK JSON FILE
+        async function connectJsonFile() {
+            if (!('showOpenFilePicker' in window)) {
+                alert("متصفحك لا يدعم نظام فتح وحفظ الملفات المباشر. يرجى استخدام Google Chrome أو Microsoft Edge.");
+                return;
+            }
+
+            try {
+                const options = {
+                    suggestedName: 'prayers_data.json',
+                    types: [{
+                        description: 'JSON Database File',
+                        accept: { 'application/json': ['.json'] },
+                    }],
+                };
+
+                // Open file picker or create file handle
+                fileHandle = await window.showSaveFilePicker(options);
+                await storeFileHandleInIDB(fileHandle);
+
+                setConnectionStatus(true);
+                document.getElementById('reconnectBanner').classList.add('hidden');
+
+                // Read existing data if available, or write initial structure
+                const readSuccess = await readFromJsonFile(false);
+                if (!readSuccess) {
+                    ensureRollingWindow();
+                    await writeToJsonFile();
+                } else {
+                    ensureRollingWindow();
+                    await writeToJsonFile();
+                }
+
+                startFileWatcher();
+                showToast("تم ربط ملف JSON بنجاح كقاعدة بيانات حية!");
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("File Connect error:", err);
+                    showToast("فشل الربط بملف JSON", "error");
+                }
+            }
+        }
+
+        // READ DIRECTLY FROM JSON FILE
+        async function readFromJsonFile(notify = false) {
+            if (!fileHandle) return false;
+
+            try {
+                const file = await fileHandle.getFile();
+                lastModifiedTime = file.lastModified;
+
+                const text = await file.text();
+                if (!text || text.trim() === '') return false;
+
+                const parsed = JSON.parse(text);
+                if (parsed && parsed.days) {
+                    trackerData = parsed;
+                    normalizeTrackerData();
+                    ensureRollingWindow();
+                    renderGrid();
+
+                    if (notify) {
+                        showToast("تم جلب البيانات وتحديث الواجهة من ملف الـ JSON");
+                    }
+                    return true;
+                }
+            } catch (err) {
+                console.error("Error reading JSON file database:", err);
+            }
+            return false;
+        }
+
+        function normalizeTrackerData() {
+            if (!trackerData.days) trackerData.days = {};
+            Object.keys(trackerData.days).forEach(dateKey => {
+                const day = trackerData.days[dateKey];
+                PRAYERS.forEach(p => {
+                    const val = day[p.key];
+                    if (val === true || val === 'done' || val === 'true') {
+                        day[p.key] = 'done';
+                    } else if (val === false || val === 'missed' || val === 'false') {
+                        day[p.key] = 'missed';
+                    } else {
+                        day[p.key] = 'none';
+                    }
+                });
+            });
+        }
+
+        // WRITE DIRECTLY TO JSON FILE
+        async function writeToJsonFile() {
+            if (!fileHandle) return;
+
+            try {
+                isWritingToFile = true;
+                const writableStream = await fileHandle.createWritable();
+                const jsonContent = JSON.stringify(trackerData, null, 2);
+                await writableStream.write(jsonContent);
+                await writableStream.close();
+
+                const file = await fileHandle.getFile();
+                lastModifiedTime = file.lastModified;
+
+            } catch (err) {
+                console.error("Failed writing to JSON File DB:", err);
+                showToast("تعذر تعليق التغييرات على ملف الـ JSON", "error");
+            } finally {
+                setTimeout(() => { isWritingToFile = false; }, 300);
+            }
+        }
+
+        // POLLING FILE FOR LIVE EDITS (VS CODE -> HTML)
+        function startFileWatcher() {
+            setInterval(async () => {
+                if (!fileHandle || isWritingToFile) return;
+
+                try {
+                    const file = await fileHandle.getFile();
+                    if (file.lastModified > lastModifiedTime) {
+                        lastModifiedTime = file.lastModified;
+                        await readFromJsonFile(true);
+                    }
+                } catch (err) {
+                    // Fail silently on quick locks
+                }
+            }, 1000);
+        }
+
+        function isDayFullyCompleted(dayObj) {
+            if (!dayObj) return false;
+            return PRAYERS.every(p => dayObj[p.key] === 'done' || dayObj[p.key] === true);
+        }
+
+        async function forceAddDays() {
+            const keys = Object.keys(trackerData.days).sort();
+            let baseDate = new Date();
+            if (keys.length > 0) {
+                const lastKey = keys[keys.length - 1];
+                baseDate = parseISODate(lastKey);
+                baseDate.setDate(baseDate.getDate() + 1);
+            }
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(baseDate);
+                d.setDate(baseDate.getDate() + i);
+                const dStr = formatDateISO(d);
+                trackerData.days[dStr] = { fajr: 'none', dhuhr: 'none', asr: 'none', maghrib: 'none', isha: 'none' };
+            }
+
+            await writeToJsonFile();
+            renderGrid();
+            showToast("تم حفر 7 أيام جديدة داخل ملف الـ JSON");
+        }
+
+        // RENDER HTML FROM CURRENT JSON DATA
+        function renderGrid() {
+            const container = document.getElementById('daysGrid');
+            const successCard = document.getElementById('allSuccessCard');
+            container.innerHTML = '';
+
+            const todayStr = getTodayISO();
+            const todayDate = parseISODate(todayStr);
+
+            const allDayKeys = Object.keys(trackerData.days).sort();
+            let visibleDaysCount = 0;
+
+            allDayKeys.forEach(dateKey => {
+                const dayData = trackerData.days[dateKey];
+                const dayDate = parseISODate(dateKey);
+
+                const isPast = dayDate < todayDate;
+                const isToday = dateKey === todayStr;
+                const isComplete = isDayFullyCompleted(dayData);
+
+                // Hide days from the past or current that are 100% finished
+                if ((isPast && isComplete) || (isToday && isComplete)) {
+                    return;
+                }
+
+                visibleDaysCount++;
+                const isOverdueIncomplete = isPast && !isComplete;
+
+                const dayName = DAY_NAMES[dayDate.getDay()];
+                const dateFormatted = dayDate.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                let completedPrayersCount = 0;
+                PRAYERS.forEach(p => {
+                    if (dayData[p.key] === 'done' || dayData[p.key] === true) completedPrayersCount++;
+                });
+
+                let cardBgClass = "bg-white border-slate-200 shadow-sm";
+                let badgeBgClass = "bg-emerald-50 text-emerald-800";
+                let headerTextClass = "text-slate-800";
+                let warningBanner = "";
+
+                if (isOverdueIncomplete) {
+                    cardBgClass = "bg-rose-50/90 border-rose-300 ring-2 ring-rose-400/40 shadow-md";
+                    badgeBgClass = "bg-rose-200 text-rose-900";
+                    headerTextClass = "text-rose-950";
+                    warningBanner = `
+                        <div class="mb-3 px-3 py-1.5 bg-rose-500/10 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-700 text-[11px] font-bold">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-xs"></i>
+                            <span>تحذير: يوم سابق به صلوات فائتة لم تكتمل بعد!</span>
+                        </div>
+                    `;
+                } else if (isToday) {
+                    cardBgClass = "bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-md";
+                    badgeBgClass = "bg-emerald-600 text-white";
+                }
+
+                const cardHtml = `
+                    <div id="card-${dateKey}" class="prayer-card rounded-2xl p-5 border ${cardBgClass} relative overflow-hidden">
+                        
+                        ${warningBanner}
+
+                        <!-- Card Header -->
+                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200/60">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-extrabold ${headerTextClass} text-base">${dayName}</h3>
+                                    ${isToday ? '<span class="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-bold rounded-md">اليوم</span>' : ''}
+                                </div>
+                                <span class="text-xs text-slate-500 block font-semibold mt-0.5">${dateFormatted} (${dateKey})</span>
+                            </div>
+
+                            <span class="text-xs px-2.5 py-1 rounded-full font-bold ${badgeBgClass}">
+                                ${completedPrayersCount} / 5
+                            </span>
+                        </div>
+
+                        <!-- Prayers Buttons -->
+                        <div class="space-y-2">
+                            ${PRAYERS.map(p => {
+                    const rawVal = dayData[p.key];
+                    const isDone = rawVal === 'done' || rawVal === true || rawVal === 'true';
+                    const isMissed = rawVal === 'missed' || rawVal === false || rawVal === 'false';
+
+                    return `
+                                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/80 border border-slate-200/70 hover:bg-white transition">
+                                        <span class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                                            ${p.name}
+                                            ${isDone ? '<span class="text-[10px] text-emerald-600 font-bold">(تمت)</span>' : ''}
+                                            ${isMissed ? '<span class="text-[10px] text-rose-600 font-bold">(فُوّتت)</span>' : ''}
+                                        </span>
+                                        
+                                        <div class="flex items-center gap-2">
+                                            <!-- Done Checkmark Button (✓) -->
+                                            <button onclick="togglePrayer('${dateKey}', '${p.key}', 'done')" 
+                                                    title="تمت الصلاة (✓)"
+                                                    class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition ${isDone ? 'bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-400 scale-105' : 'bg-slate-100 border border-slate-300 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+
+                                            <!-- Missed Cross Button (✗) -->
+                                            <button onclick="togglePrayer('${dateKey}', '${p.key}', 'missed')" 
+                                                    title="لم تصلَّ / قضاء (✗)"
+                                                    class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition ${isMissed ? 'bg-rose-600 text-white shadow-lg ring-2 ring-rose-400 scale-105' : 'bg-slate-100 border border-slate-300 text-slate-400 hover:border-rose-500 hover:text-rose-600 hover:bg-rose-50'}">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                }).join('')}
+                        </div>
+
+                    </div>
+                `;
+
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            if (visibleDaysCount === 0) {
+                successCard.classList.remove('hidden');
+            } else {
+                successCard.classList.add('hidden');
+            }
+        }
+
+        // Toggle Prayer Status & Write Immediately to JSON
+        async function togglePrayer(dateKey, prayerKey, targetStatus) {
+            if (!trackerData.days[dateKey]) return;
+
+            const currentVal = trackerData.days[dateKey][prayerKey];
+            const currentStatus = (currentVal === true || currentVal === 'done') ? 'done' :
+                (currentVal === false || currentVal === 'missed') ? 'missed' : 'none';
+
+            if (currentStatus === targetStatus) {
+                trackerData.days[dateKey][prayerKey] = 'none';
+            } else {
+                trackerData.days[dateKey][prayerKey] = targetStatus;
+            }
+
+            // Write immediately to JSON DB file
+            await writeToJsonFile();
+            renderGrid();
+            showToast("تم تحديث البيانات المباشرة في ملف JSON");
+        }
+
+        async function resetAllData() {
+            if (confirm("هل أنت تأكد من تفريغ كافة البيانات المسجلة في ملف الـ JSON؟")) {
+                trackerData = {
+                    lastUpdated: getTodayISO(),
+                    days: {}
+                };
+                ensureRollingWindow();
+                await writeToJsonFile();
+                renderGrid();
+                showToast("تم مسح البيانات وتحديث ملف JSON");
+            }
+        }
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = message;
+
+            if (type === "error") {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            }
+
+            toast.classList.remove('-translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+
+</html>
