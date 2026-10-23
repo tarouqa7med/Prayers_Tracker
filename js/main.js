@@ -111,11 +111,11 @@ function checkAndAutoMissedPrayers() {
 
         // الحدود الزمنية التقريبية بالدقائق منذ منتصف الليل لكل صلاة:
         const prayerThresholds = {
-                fajr: 390,    // 06:30 AM
-                dhuhr: 960,   // 04:00 PM
-                asr: 1080,    // 06:00 PM
-                maghrib: 1200,// 08:00 PM
-                isha: 1439    // 11:59 PM
+                fajr: 400,    // 06:40 AM
+                dhuhr: 840,    // 02:00 PM
+                asr: 1000,    // 04:40 PM
+                maghrib: 1200,    // 08:00 PM
+                isha: 1350    // 11:59 PM
         };
 
         let updated = false;
