@@ -253,7 +253,7 @@ function renderGrid() {
                                         <div>
                                                 <div class="flex items-center gap-2">
                                                         <h3 class="font-extrabold ${headerTextClass} text-base">${dayName}</h3>
-                                                        ${isToday ? '<span class="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-bold rounded-md">اليوم</span>' : ''}
+                                                        ${isToday ? '<span class="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-bold rounded-md">Today</span>' : ''}
                                                 </div>
                                                 <span class="text-xs text-slate-500 block font-semibold mt-0.5">${dateKey}</span>
                                         </div>
