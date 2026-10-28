@@ -1,4 +1,3 @@
-// Application Script with Firebase Realtime Sync & Laptop Date/Time Awareness
 
 const PRAYERS = [
         { key: 'fajr', name: 'Al-Fajr' },
@@ -17,15 +16,12 @@ let trackerData = {
 
 let isInitialLoad = true;
 
-// Real-time listener from Firebase
 dbRef.on('value', (snapshot) => {
         const serverData = snapshot.val();
         if (serverData && serverData.days) {
                 trackerData = serverData;
                 normalizeTrackerData();
                 ensureRollingWindow();
-                
-                // فحص الأوقات والتاريخ الحالي للابتوب وتحديث الفوائت أوتوماتيكياً
                 checkAndAutoMissedPrayers();
 
                 renderGrid();
@@ -33,7 +29,6 @@ dbRef.on('value', (snapshot) => {
                         showToast("Data from the cloud is updated automatically");
                 }
         } else {
-                // If DB is empty, initialize rolling window and push to Firebase
                 ensureRollingWindow();
                 syncToFirebase();
         }
@@ -91,31 +86,30 @@ function normalizeTrackerData() {
                 PRAYERS.forEach(p => {
                         const val = day[p.key];
                         if (val === true || val === 'done' || val === 'true') {
-                        day[p.key] = 'done';
+                                day[p.key] = 'done';
                         } else if (val === false || val === 'missed' || val === 'false') {
-                        day[p.key] = 'missed';
+                                day[p.key] = 'missed';
                         } else {
-                        day[p.key] = 'none';
+                                day[p.key] = 'none';
                         }
                 });
         });
 }
 
-// دالة التحقق الذكي بناءً على تاريخ ووقت اللابتوب الحالي
+
 function checkAndAutoMissedPrayers() {
-        const now = new Date(); // يعتمد على توقيت اللابتوب الحالي
+        const now = new Date();
         const laptopTodayStr = formatDateISO(now);
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
         const currentTimeMinutes = currentHour * 60 + currentMinute;
 
-        // الحدود الزمنية التقريبية بالدقائق منذ منتصف الليل لكل صلاة:
         const prayerThresholds = {
-                fajr: 400,    // 06:40 AM
-                dhuhr: 840,    // 02:00 PM
-                asr: 1000,    // 04:40 PM
-                maghrib: 1200,    // 08:00 PM
-                isha: 1350    // 11:59 PM
+                fajr: 300,    // 05:00 AM
+                dhuhr: 720,    // 12:00 PM
+                asr: 900,    // 03:00 PM
+                maghrib: 1050,    // 05:30 PM
+                isha: 1140    // 7:00 PM
         };
 
         let updated = false;
@@ -126,7 +120,6 @@ function checkAndAutoMissedPrayers() {
                 const dayDate = parseISODate(dateKey);
 
                 if (dayDate < laptopTodayDate) {
-                        // الأيام السابقة لتاريخ اللابتوب الحالي: أي صلاة لم تُسجل تحول لـ missed
                         PRAYERS.forEach(p => {
                                 if (dayData[p.key] === 'none') {
                                         dayData[p.key] = 'missed';
@@ -134,7 +127,6 @@ function checkAndAutoMissedPrayers() {
                                 }
                         });
                 } else if (dateKey === laptopTodayStr) {
-                        // نفس تاريخ اللابتوب الحالي: فحص وقت اللابتوب الحالي مع الصلوات
                         PRAYERS.forEach(p => {
                                 if (dayData[p.key] === 'none' && currentTimeMinutes > prayerThresholds[p.key]) {
                                         dayData[p.key] = 'missed';
@@ -149,7 +141,6 @@ function checkAndAutoMissedPrayers() {
         }
 }
 
-// Sync data to Firebase Database
 async function syncToFirebase() {
         try {
                 trackerData.lastUpdated = getTodayISO();
@@ -187,7 +178,6 @@ async function forceAddDays() {
         showToast("7 new cloud days added");
 }
 
-// Render UI Cards
 function renderGrid() {
         const container = document.getElementById('daysGrid');
         const successCard = document.getElementById('allSuccessCard');
@@ -209,7 +199,6 @@ function renderGrid() {
                 const isToday = dateKey === todayStr;
                 const isComplete = isDayFullyCompleted(dayData);
 
-                // Hide completed days automatically
                 if ((isPast && isComplete) || (isToday && isComplete)) {
                         return;
                 }
@@ -311,7 +300,6 @@ function renderGrid() {
         }
 }
 
-// Toggle Prayer Status & Save instantly to Firebase
 async function togglePrayer(dateKey, prayerKey, targetStatus) {
         if (!trackerData.days[dateKey]) return;
 
